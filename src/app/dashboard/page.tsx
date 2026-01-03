@@ -6,36 +6,24 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { BackgroundDecor } from "@/components/layout/BackgroundDecor";
-import { useAuth } from "@/context/AuthContext";
+import { useAppSelector } from "@/store/hooks";
 
 export default function DashboardPage() {
     const router = useRouter();
-    const { role } = useAuth();
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-    const [isLoading, setIsLoading] = React.useState(true);
+    const { role, accessToken, isLoading } = useAppSelector(state => state.auth);
 
     React.useEffect(() => {
-        // Check authentication
-        const token = localStorage.getItem('access_token');
-        const userRole = localStorage.getItem('role');
-
-        if (token) {
-            setIsAuthenticated(true);
-            // If user is admin, redirect to admin dashboard
-            if (userRole === 'admin') {
-                router.push('/admin/dashboard');
-                return;
-            }
+        if (!isLoading && accessToken && role === 'school') {
+            router.push('/admin/dashboard');
         }
-        setIsLoading(false);
-    }, [router]);
+    }, [role, accessToken, isLoading, router]);
 
     if (isLoading) {
         return <div className="min-h-screen flex items-center justify-center text-primary">Loading...</div>;
     }
 
     // Show login form if not authenticated
-    if (!isAuthenticated) {
+    if (!accessToken) {
         return (
             <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground transition-colors duration-300">
                 <BackgroundDecor />
@@ -47,7 +35,7 @@ export default function DashboardPage() {
         );
     }
 
-    // Show dashboard content for authenticated super_admin users
+    // Show dashboard content for authenticated organisation users
     return (
         <main className="space-y-8">
             <section>

@@ -5,34 +5,24 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { BackgroundDecor } from "@/components/layout/BackgroundDecor";
+import { useAppSelector } from "@/store/hooks";
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-    const [isLoading, setIsLoading] = React.useState(true);
+    const { role, accessToken, isLoading } = useAppSelector(state => state.auth);
 
     React.useEffect(() => {
-        // Check authentication
-        const token = localStorage.getItem('access_token');
-        const userRole = localStorage.getItem('role');
-
-        if (token) {
-            setIsAuthenticated(true);
-            // If user is super_admin, redirect to main dashboard
-            if (userRole === 'super_admin') {
-                router.push('/dashboard');
-                return;
-            }
+        if (!isLoading && accessToken && role === 'organisation') {
+            router.push('/dashboard');
         }
-        setIsLoading(false);
-    }, [router]);
+    }, [role, accessToken, isLoading, router]);
 
     if (isLoading) {
         return <div className="min-h-screen flex items-center justify-center text-primary">Loading...</div>;
     }
 
     // Show login form if not authenticated
-    if (!isAuthenticated) {
+    if (!accessToken) {
         return (
             <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground transition-colors duration-300">
                 <BackgroundDecor />

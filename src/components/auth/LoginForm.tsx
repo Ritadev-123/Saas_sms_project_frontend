@@ -8,14 +8,16 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { SocialLogin } from "./SocialLogin";
 import { API_BASE_URL } from "@/lib/env";
-import { useAuth, Role } from "@/context/AuthContext";
+import { useAppDispatch } from "@/store/hooks";
+import { setAuth } from "@/store/slices/authSlice";
+import type { Role } from "@/store/slices/authSlice";
 
 interface LoginFormProps {
     isAdminLogin?: boolean;
 }
 
 export const LoginForm = ({ isAdminLogin = false }: LoginFormProps) => {
-    const { login } = useAuth();
+    const dispatch = useAppDispatch();
     const router = useRouter();
     const [isLoading, setIsLoading] = React.useState(false);
     const [selectedRole, setSelectedRole] = React.useState<"organisation" | "school">(
@@ -66,10 +68,20 @@ export const LoginForm = ({ isAdminLogin = false }: LoginFormProps) => {
             if (data.success) {
                 setSuccess(data.message || "Login successful!");
 
-                login({
-                    access_token: data.data.access_token,
-                    refresh_token: data.data.refresh_token
-                }, selectedRole);
+                dispatch(setAuth({
+                    accessToken: data.data.access_token,
+                    refreshToken: data.data.refresh_token,
+                    role: selectedRole
+                }));
+
+                // Redirect based on role
+                setTimeout(() => {
+                    if (selectedRole === "organisation") {
+                        router.push("/dashboard");
+                    } else {
+                        router.push("/admin/dashboard");
+                    }
+                }, 1000);
 
             } else {
                 setError(data.message || "Login failed. Please check your credentials.");

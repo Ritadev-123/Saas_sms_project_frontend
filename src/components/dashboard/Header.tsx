@@ -2,18 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { useTheme } from "@/context/ThemeContext";
+import { RootState } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { toggleTheme } from "@/store/slices/themeSlice";
+import { logout } from "@/store/slices/authSlice";
 
 export function Header() {
     const router = useRouter();
-    const { theme, toggleTheme } = useTheme();
+    const dispatch = useAppDispatch();
+    const theme = useAppSelector((state: RootState) => state.theme.theme);
 
     const handleLogout = () => {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        // Clear cookies
-        document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-        document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        dispatch(logout());
         router.push("/");
     };
 
@@ -25,7 +25,7 @@ export function Header() {
             </div>
             <div className="flex items-center gap-4">
                 <button
-                    onClick={toggleTheme}
+                    onClick={() => dispatch(toggleTheme())}
                     className="rounded-full p-2 text-muted hover:bg-secondary hover:text-foreground transition-colors"
                     title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
                 >

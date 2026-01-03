@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth, Role } from "@/context/AuthContext";
+import { useAppSelector } from "@/store/hooks";
 
 const organisationMenu = [
     { name: "Dashboard", href: "/dashboard", icon: "📊" },
@@ -21,7 +21,7 @@ const schoolMenu = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { role } = useAuth();
+    const role = useAppSelector((state) => state.auth.role);
 
     const menuItems = role === "school" ? schoolMenu : organisationMenu;
 
