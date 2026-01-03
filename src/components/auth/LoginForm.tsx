@@ -8,10 +8,19 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { SocialLogin } from "./SocialLogin";
 import { API_BASE_URL } from "@/lib/env";
+import { useAuth, Role } from "@/context/AuthContext";
 
-export const LoginForm = () => {
+interface LoginFormProps {
+    isAdminLogin?: boolean;
+}
+
+export const LoginForm = ({ isAdminLogin = false }: LoginFormProps) => {
+    const { login } = useAuth();
     const router = useRouter();
     const [isLoading, setIsLoading] = React.useState(false);
+    const [selectedRole, setSelectedRole] = React.useState<"organisation" | "school">(
+        isAdminLogin ? "school" : "organisation"
+    );
     const [formData, setFormData] = React.useState({ email: "", password: "" });
     const [error, setError] = React.useState<string | null>(null);
     const [success, setSuccess] = React.useState<string | null>(null);
@@ -23,7 +32,15 @@ export const LoginForm = () => {
         setSuccess(null);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/platform/auth/login`, {
+            const loginUrl = isAdminLogin
+                ? `${API_BASE_URL}/platform/auth/login`
+                : selectedRole === "organisation"
+                    ? `${API_BASE_URL}/org/auth/login`
+                    : `${API_BASE_URL}/school/auth/login`;
+
+            console.log("Attempting login to:", loginUrl);
+
+            const response = await fetch(loginUrl, {
                 method: 'POST',
                 headers: {
                     'accept': 'application/json',
@@ -33,22 +50,27 @@ export const LoginForm = () => {
             });
 
             const data = await response.json();
+            console.log("API Response:", data);
+
+            // Check if response is not OK (status 4xx or 5xx)
+            if (!response.ok) {
+                // Handle API errors like "Method Not Allowed"
+                if (data.detail) {
+                    setError(`API Error: ${data.detail}`);
+                } else {
+                    setError(data.message || `Server error: ${response.status}`);
+                }
+                return;
+            }
 
             if (data.success) {
                 setSuccess(data.message || "Login successful!");
-                console.log("Login Success:", data);
-                // Store tokens in localStorage
-                localStorage.setItem('access_token', data.data.access_token);
-                localStorage.setItem('refresh_token', data.data.refresh_token);
 
-                // Store tokens in cookies
-                document.cookie = `access_token=${data.data.access_token}; path=/; secure; samesite=strict`;
-                document.cookie = `refresh_token=${data.data.refresh_token}; path=/; secure; samesite=strict`;
+                login({
+                    access_token: data.data.access_token,
+                    refresh_token: data.data.refresh_token
+                }, selectedRole);
 
-                // Redirect to dashboard
-                setTimeout(() => {
-                    router.push('/dashboard');
-                }, 1000);
             } else {
                 setError(data.message || "Login failed. Please check your credentials.");
             }
@@ -68,12 +90,37 @@ export const LoginForm = () => {
         <Card className="w-full max-w-md relative z-10 border-white/10">
             <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-2">
-                    Welcome Back
+                    {isAdminLogin ? "School Admin Login" : "Welcome Back"}
                 </h1>
-                <p className="text-gray-400">
+                <p className="text-muted">
                     Sign in to access your dashboard
                 </p>
             </div>
+
+            {!isAdminLogin && (
+                <div className="flex bg-secondary/50 p-1 rounded-lg mb-6">
+                    <button
+                        type="button"
+                        onClick={() => setSelectedRole("organisation")}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "organisation"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted hover:text-foreground"
+                            }`}
+                    >
+                        Organisation
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedRole("school")}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "school"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted hover:text-foreground"
+                            }`}
+                    >
+                        School
+                    </button>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <Input
